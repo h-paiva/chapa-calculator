@@ -49,7 +49,7 @@ export const PrintReport: React.FC<PrintReportProps> = ({
   const currentDate = new Date().toLocaleDateString("pt-BR");
 
   return (
-    <div className="fixed inset-0 z-50 bg-white text-zinc-900 overflow-y-auto p-4 md:p-8 print:p-0 font-sans">
+    <div className="fixed inset-0 z-50 bg-white text-zinc-900 overflow-y-auto p-4 md:p-8 print:p-0 font-sans print-report-container">
       {/* Alert about iFrame printing restriction */}
       {isInIframe && (
         <div className="max-w-4xl mx-auto mb-4 bg-orange-50 border border-orange-300 text-orange-950 rounded-xl p-4 text-xs font-medium print:hidden flex items-start gap-2.5">
@@ -242,7 +242,7 @@ export const PrintReport: React.FC<PrintReportProps> = ({
 
           <div className="space-y-8">
             {result.layouts.map((lay) => (
-              <div key={lay.id} className="border border-zinc-300 rounded-2xl p-4 bg-zinc-50/30 page-break-inside-avoid">
+              <div key={lay.id} className="border border-zinc-300 rounded-2xl p-4 bg-zinc-50/30 page-break-inside-avoid print-sheet-layout">
                 <div className="flex justify-between items-center mb-3">
                   <h4 className="text-xs font-bold text-zinc-900">
                     Plano de Corte - CHAPA #{lay.id}
@@ -361,7 +361,7 @@ export const PrintReport: React.FC<PrintReportProps> = ({
         </div>
 
         {/* 4. Production agreement/notes area */}
-        <div className="border-t-2 border-zinc-900 mt-12 pt-6 pb-12 print:pb-0">
+        <div className="border-t-2 border-zinc-900 mt-12 pt-6 pb-12 print:pb-0 page-break-inside-avoid">
           <div className="grid grid-cols-2 gap-8">
             <div>
               <h4 className="text-[10px] font-black uppercase text-zinc-900 mb-2">
@@ -385,18 +385,42 @@ export const PrintReport: React.FC<PrintReportProps> = ({
       {/* Tailwind helper strictly for printing layout breaks on standard layout engines */}
       <style>{`
         @media print {
-          body {
+          html, body {
+            height: auto !important;
+            overflow: visible !important;
+            position: static !important;
             background-color: white !important;
             color: black !important;
+          }
+          .print-report-container {
+            position: static !important;
+            overflow: visible !important;
+            height: auto !important;
+            width: auto !important;
+            padding: 0 !important;
           }
           .print\\:hidden {
             display: none !important;
           }
           .page-break-before {
             page-break-before: always;
+            break-before: always;
           }
           .page-break-inside-avoid {
             page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          .print-sheet-layout {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          .print-sheet-layout + .print-sheet-layout {
+            page-break-before: always;
+            break-before: always;
+          }
+          @page {
+            size: auto;
+            margin: 15mm 15mm 15mm 15mm;
           }
         }
       `}</style>
