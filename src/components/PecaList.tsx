@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Peca } from "../types";
-import { ListPlus, Trash2, Plus, RefreshCw, Layers } from "lucide-react";
+import { ListPlus, Trash2, Plus, RefreshCw, Layers, ArrowUpDown, X, Copy, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 interface PecaListProps {
@@ -8,6 +8,7 @@ interface PecaListProps {
   onAddPeca: (peca: Omit<Peca, "id">) => void;
   onRemovePeca: (id: string) => void;
   onClearPecas: () => void;
+  onImportPecas: (pecas: Omit<Peca, "id">[]) => void;
   onLoadPreset: (presetName: string) => void;
   hoveredPieceId: string | null;
   setHoveredPieceId: (id: string | null) => void;
@@ -41,6 +42,7 @@ export const PecaList: React.FC<PecaListProps> = ({
   onAddPeca,
   onRemovePeca,
   onClearPecas,
+  onImportPecas,
   onLoadPreset,
   hoveredPieceId,
   setHoveredPieceId,
@@ -53,6 +55,114 @@ export const PecaList: React.FC<PecaListProps> = ({
   const [quantidade, setQuantidade] = useState<number>(1);
   const [cor, setCor] = useState(LIGHT_PASTELS[0]);
   const [errorMsg, setErrorMsg] = useState("");
+
+  // Estados para Importar / Exportar
+  const [showImportExport, setShowImportExport] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [modalErrors, setModalErrors] = useState<string[]>([]);
+  const [copied, setCopied] = useState(false);
+
+  const handleOpenImportExport = () => {
+    // Gera o texto pré-formatado a partir da lista atual
+    const exported = pecas
+      .map((p) => `${p.nome}, ${p.largura}, ${p.comprimento}, ${p.quantidade}`)
+      .join("\n");
+    setImportText(exported);
+    setModalErrors([]);
+    setCopied(false);
+    setShowImportExport(true);
+  };
+
+  const handleCopyText = () => {
+    navigator.clipboard.writeText(importText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleProcessImport = () => {
+    setModalErrors([]);
+    const lines = importText.split("\n");
+    const parsedPecas: Omit<Peca, "id">[] = [];
+    const errors: string[] = [];
+
+    let colorIndex = 0;
+
+    lines.forEach((line, index) => {
+      const cleanLine = line.trim();
+      // Ignorar linhas em branco ou comentários
+      if (!cleanLine || cleanLine.startsWith("#") || cleanLine.startsWith("//")) {
+        return;
+      }
+
+      // Dividir por vírgula ou ponto-e-vírgula
+      const parts = cleanLine.split(/[,;]/);
+      if (parts.length < 3) {
+        errors.push(`Linha ${index + 1}: Formato inválido. Use "Nome, Largura, Comprimento, Quantidade"`);
+        return;
+      }
+
+      const nomePeca = parts[0].trim();
+      const largPeca = parseFloat(parts[1].trim());
+      const compPeca = parseFloat(parts[2].trim());
+      let qtdPeca = 1;
+
+      if (parts[3]) {
+        const parsedQtd = parseInt(parts[3].trim());
+        if (!isNaN(parsedQtd)) {
+          qtdPeca = parsedQtd;
+        }
+      }
+
+      // Validações
+      if (!nomePeca) {
+        errors.push(`Linha ${index + 1}: O nome da peça é obrigatório.`);
+        return;
+      }
+      if (isNaN(largPeca) || largPeca <= 0) {
+        errors.push(`Linha ${index + 1}: Largura ("${parts[1]}") deve ser um valor positivo.`);
+        return;
+      }
+      if (isNaN(compPeca) || compPeca <= 0) {
+        errors.push(`Linha ${index + 1}: Comprimento ("${parts[2]}") deve ser um valor positivo.`);
+        return;
+      }
+      if (qtdPeca < 1) {
+        errors.push(`Linha ${index + 1}: A quantidade deve ser de pelo menos 1.`);
+        return;
+      }
+
+      // Verificar se a peça cabe na chapa (em qualquer sentido)
+      const cabeNormal = largPeca <= chapaMaxW && compPeca <= chapaMaxL;
+      const cabeRotacionada = compPeca <= chapaMaxW && largPeca <= chapaMaxL;
+      if (!cabeNormal && !cabeRotacionada) {
+        errors.push(
+          `Linha ${index + 1}: A peça "${nomePeca}" (${largPeca}x${compPeca} cm) é maior que a chapa (${chapaMaxW}x${chapaMaxL} cm).`
+        );
+        return;
+      }
+
+      const pecaColor = LIGHT_PASTELS[colorIndex % LIGHT_PASTELS.length];
+      colorIndex++;
+
+      parsedPecas.push({
+        nome: nomePeca,
+        largura: largPeca,
+        comprimento: compPeca,
+        quantidade: qtdPeca,
+        cor: pecaColor,
+      });
+    });
+
+    if (errors.length > 0) {
+      setModalErrors(errors);
+      return;
+    }
+
+    // Limpa a lista atual e substitui pelas novas peças
+    onClearPecas();
+    onImportPecas(parsedPecas);
+    setShowImportExport(false);
+  };
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,14 +236,24 @@ export const PecaList: React.FC<PecaListProps> = ({
               </p>
             </div>
           </div>
-          {pecas.length > 0 && (
+          <div className="flex items-center gap-1.5">
             <button
-              onClick={onClearPecas}
-              className="text-[11px] text-red-400 hover:text-red-300 font-bold transition-all border border-red-950/80 px-2.5 py-1 rounded-lg hover:bg-red-950/30 cursor-pointer"
+              type="button"
+              onClick={handleOpenImportExport}
+              className="text-[11px] text-orange-400 hover:text-orange-300 font-bold transition-all border border-orange-950/80 px-2.5 py-1 rounded-lg hover:bg-orange-950/30 cursor-pointer flex items-center gap-1"
             >
-              Remover Tudo
+              <ArrowUpDown className="w-3.5 h-3.5" /> Importar/Exportar
             </button>
-          )}
+            {pecas.length > 0 && (
+              <button
+                type="button"
+                onClick={onClearPecas}
+                className="text-[11px] text-red-400 hover:text-red-300 font-bold transition-all border border-red-950/80 px-2.5 py-1 rounded-lg hover:bg-red-950/30 cursor-pointer"
+              >
+                Remover Tudo
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Modelos de Exemplo */}
@@ -309,6 +429,125 @@ export const PecaList: React.FC<PecaListProps> = ({
           {pecas.reduce((acc, p) => acc + p.quantidade, 0)} peças de madeira cadastradas
         </span>
       </div>
+
+      {/* Modal de Importação/Exportação */}
+      <AnimatePresence>
+        {showImportExport && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowImportExport(false)}
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
+            />
+
+            {/* Modal Card */}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[85vh]"
+            >
+              {/* Header */}
+              <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown className="w-4 h-4 text-orange-500" />
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                    Importar / Exportar Peças
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowImportExport(false)}
+                  className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer border-0 bg-transparent"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 flex-1 overflow-y-auto space-y-4">
+                <div className="bg-slate-950/60 border border-slate-850 rounded-xl p-3.5 space-y-1.5">
+                  <h4 className="text-[10px] font-bold text-slate-300 uppercase tracking-wide">
+                    Como funciona:
+                  </h4>
+                  <p className="text-[10px] text-slate-400 leading-relaxed">
+                    Insira uma peça por linha no formato: <strong>Nome, Largura, Comprimento, Quantidade</strong>. 
+                    <br />
+                    Use vírgula (<code>,</code>) ou ponto-e-vírgula (<code>;</code>) como separador.
+                  </p>
+                  <pre className="text-[9px] font-mono text-orange-450 bg-slate-950 p-2.5 rounded-lg border border-slate-900 leading-normal">
+                    Porta Armário, 50, 70, 2&#10;Lateral MDF, 35.5, 120, 2&#10;Fundo Traseiro, 68, 120, 1
+                  </pre>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Área de Texto
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleCopyText}
+                      className="text-[9px] font-bold text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer transition-colors border-0 bg-transparent"
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="w-3 h-3 text-green-500" /> Copiado!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3" /> Copiar Texto
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <textarea
+                    value={importText}
+                    onChange={(e) => setImportText(e.target.value)}
+                    placeholder="Cole seu texto formatado aqui..."
+                    className="w-full h-44 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white font-mono font-semibold focus:ring-1 focus:ring-orange-500 focus:outline-none scrollbar-thin resize-none"
+                  />
+                </div>
+
+                {/* Exibição de erros */}
+                {modalErrors.length > 0 && (
+                  <div className="bg-red-950/30 border border-red-900 rounded-xl p-3.5 space-y-1">
+                    <h5 className="text-[10px] font-bold text-red-400 uppercase tracking-wide">
+                      Erros de Validação ({modalErrors.length})
+                    </h5>
+                    <ul className="text-[9px] text-red-350 list-disc pl-4 space-y-0.5 max-h-[120px] overflow-y-auto font-medium">
+                      {modalErrors.map((err, idx) => (
+                        <li key={idx}>{err}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-slate-800 bg-slate-950/50 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowImportExport(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-350 hover:text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleProcessImport}
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-md shadow-orange-950/20 flex items-center gap-1"
+                >
+                  <Check className="w-4 h-4" /> Aplicar e Substituir
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

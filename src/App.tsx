@@ -85,6 +85,14 @@ export default function App() {
     setPecas([]);
   };
 
+  const handleImportPecas = (novasPecas: Omit<Peca, "id">[]) => {
+    const comIds = novasPecas.map((p, index) => ({
+      ...p,
+      id: `pc_${Date.now()}_${index}_${Math.random().toString(36).substring(2, 7)}`
+    }));
+    setPecas((prev) => [...prev, ...comIds]);
+  };
+
   const handleLoadPreset = (presetKey: string) => {
     const pData = PRESET_DATA[presetKey];
     if (pData) {
@@ -173,6 +181,7 @@ export default function App() {
               onAddPeca={handleAddPeca}
               onRemovePeca={handleRemovePeca}
               onClearPecas={handleClearPecas}
+              onImportPecas={handleImportPecas}
               onLoadPreset={handleLoadPreset}
               hoveredPieceId={hoveredPieceId}
               setHoveredPieceId={setHoveredPieceId}
