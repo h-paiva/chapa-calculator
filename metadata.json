@@ -1,0 +1,6 @@
+{
+  "name": "Otimizador de Corte de Madeira",
+  "description": "Ferramenta para otimizar o corte de chapas de madeira, calculando a quantidade necessária, custo total e exibindo o plano de corte interativo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
