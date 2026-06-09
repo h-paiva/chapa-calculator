@@ -325,7 +325,7 @@ export const PecaList: React.FC<PecaListProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
           {/* Dropdown de Chapas (só exibe se houver mais de uma, se for uma só fica selecionada como default) */}
-          {chapas.length > 0 && (
+          {chapas.length > 1 && (
             <div className="md:col-span-2">
               <label className="block text-[9px] text-slate-400 mb-1 uppercase tracking-wider font-bold">
                 Chapa de Destino
