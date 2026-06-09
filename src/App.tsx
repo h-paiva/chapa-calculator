@@ -15,7 +15,8 @@ export default function App() {
     const saved = localStorage.getItem("otm_chapas");
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {
         // Ignorar erro
       }
@@ -24,12 +25,28 @@ export default function App() {
   });
 
   const [pecas, setPecas] = useState<Peca[]>(() => {
-    const saved = localStorage.getItem("otm_pecas");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        // Ignorar erro
+    const savedChapas = localStorage.getItem("otm_chapas");
+    if (savedChapas) {
+      const savedPecas = localStorage.getItem("otm_pecas");
+      if (savedPecas) {
+        try {
+          const parsed = JSON.parse(savedPecas);
+          if (Array.isArray(parsed)) {
+            // Garantir que todas as peças antigas sem chapaId sejam associadas à primeira chapa existente
+            try {
+              const chapasParsed = JSON.parse(savedChapas);
+              const firstChapaId = Array.isArray(chapasParsed) && chapasParsed.length > 0 ? chapasParsed[0].id : "";
+              return parsed.map((p) => ({
+                ...p,
+                chapaId: p.chapaId || firstChapaId,
+              }));
+            } catch (err) {
+              return parsed;
+            }
+          }
+        } catch (e) {
+          // Ignorar erro
+        }
       }
     }
     return PRESET_DATA.banheiro.pecas;
