@@ -106,7 +106,7 @@ export const PrintReport: React.FC<PrintReportProps> = ({
         <div className="flex justify-between items-start border-b-2 border-zinc-900 pb-5 mb-6">
           <div>
             <h1 className="text-2xl font-black tracking-tight text-zinc-900 uppercase">
-              CorteOtimize<span className="text-orange-600">Pro</span>
+              Chapa Calculator<span className="text-orange-600">Pro</span>
             </h1>
             <p className="text-xs text-zinc-500 font-semibold font-mono uppercase tracking-wider">
               Relatório de Corte e Produção de Marcenaria

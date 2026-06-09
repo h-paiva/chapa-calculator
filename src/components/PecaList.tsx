@@ -250,7 +250,7 @@ export const PecaList: React.FC<PecaListProps> = ({
                 onClick={onClearPecas}
                 className="text-[11px] text-red-400 hover:text-red-300 font-bold transition-all border border-red-950/80 px-2.5 py-1 rounded-lg hover:bg-red-950/30 cursor-pointer"
               >
-                Remover Tudo
+                Limpar
               </button>
             )}
           </div>

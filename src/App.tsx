@@ -101,6 +101,16 @@ export default function App() {
     }
   };
 
+  const handleResetAll = () => {
+    setChapa({
+      largura: 0,
+      comprimento: 0,
+      espessura: 0,
+      valor: 0,
+    });
+    setPecas([]);
+  };
+
   if (isPrintView) {
     return (
       <PrintReport
@@ -125,7 +135,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="font-sans font-bold text-xl md:text-2xl text-white tracking-tight flex items-center gap-1.5 leading-tight">
-                CorteOtimize<span className="text-orange-500 underline decoration-2 underline-offset-4">Pro</span>
+                Chapa Calculator<span className="text-orange-500 underline decoration-2 underline-offset-4">Pro</span>
               </h1>
               <p className="text-xs text-slate-400 font-medium">
                 Cálculo inteligente de aproveitamento de chapas de madeira
@@ -144,7 +154,13 @@ export default function App() {
               onClick={() => handleLoadPreset("banheiro")}
               className="text-xs font-semibold bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 px-3.5 py-2 rounded-xl border border-slate-750 transition-colors cursor-pointer"
             >
-              Resetar Exemplo
+              Exemplo
+            </button>
+            <button
+              onClick={handleResetAll}
+              className="text-xs font-semibold bg-red-950/40 text-red-400 hover:text-red-300 hover:bg-red-900/30 px-3.5 py-2 rounded-xl border border-red-900/30 transition-colors cursor-pointer"
+            >
+              Resetar Tudo
             </button>
             <span className="hidden md:inline-flex text-[10px] font-mono text-slate-400 bg-slate-900/80 px-3 py-2 rounded-xl border border-slate-800/50">
               Fórmula: First-Fit Decreasing
@@ -262,7 +278,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="bg-slate-900 border-t border-slate-800 py-6 px-6 mt-12 text-center text-xs text-slate-500 font-medium">
-        <p>&copy; 2026 CorteOtimizePro &bull; Desenvolvido com Bento Grid Dashboard UI.</p>
+        <p>&copy; 2026 Chapa Calculator Pro &bull; Desenvolvido com Bento Grid Dashboard UI.</p>
       </footer>
     </div>
   );
