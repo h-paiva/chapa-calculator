@@ -8,6 +8,11 @@ interface VisualBoardProps {
   setHoveredPieceId: (id: string | null) => void;
 }
 
+const getBasePecaId = (id: string): string => {
+  const lastIdx = id.lastIndexOf("_");
+  return lastIdx !== -1 ? id.substring(0, lastIdx) : id;
+};
+
 export const VisualBoard: React.FC<VisualBoardProps> = ({
   layouts,
   hoveredPieceId,
@@ -31,7 +36,7 @@ export const VisualBoard: React.FC<VisualBoardProps> = ({
 
   // Coordenadas da peça selecionada para o detalhe interativo
   const activeHoveredPiece = activeLayout.packedPieces.find(
-    (p) => p.id === hoveredInstanceId || p.id.split("_")[0] === hoveredPieceId
+    (p) => p.id === hoveredInstanceId || getBasePecaId(p.id) === hoveredPieceId
   );
 
   return (
@@ -190,7 +195,7 @@ export const VisualBoard: React.FC<VisualBoardProps> = ({
             {/* Desenhar Peças Posicionadas */}
             {activeLayout.packedPieces.map((p) => {
               // Verificar se esta peça está sob hover
-              const basePecaId = p.id.split("_")[0];
+              const basePecaId = getBasePecaId(p.id);
               const isDirectHover = hoveredInstanceId === p.id;
               const isTableHover = hoveredPieceId === basePecaId;
               const isHovered = isDirectHover || isTableHover;
