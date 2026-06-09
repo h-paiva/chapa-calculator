@@ -15,6 +15,12 @@ export const VisualBoard: React.FC<VisualBoardProps> = ({
 }) => {
   const [selectedSheetId, setSelectedSheetId] = useState<number>(1);
   const [hoveredInstanceId, setHoveredInstanceId] = useState<string | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; isRight: boolean; isBottom: boolean }>({
+    x: 0,
+    y: 0,
+    isRight: false,
+    isBottom: false,
+  });
 
   if (layouts.length === 0) return null;
 
@@ -100,7 +106,20 @@ export const VisualBoard: React.FC<VisualBoardProps> = ({
 
       {/* Visual Map (Render SVG com Proporção Humana) */}
       <div className="flex-1 flex flex-col justify-center items-center">
-        <div className="relative w-full max-w-2xl bg-slate-950 rounded-xl p-4 border border-slate-850 flex items-center justify-center">
+        <div
+          className="relative w-full max-w-2xl bg-slate-950 rounded-xl p-4 border border-slate-850 flex items-center justify-center"
+          onMouseMove={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            setTooltipPos({
+              x,
+              y,
+              isRight: x > rect.width * 0.55,
+              isBottom: y > rect.height * 0.55,
+            });
+          }}
+        >
           {/* SVG Map */}
           <svg
             viewBox={`0 0 ${chapa.largura} ${chapa.comprimento}`}
@@ -240,7 +259,7 @@ export const VisualBoard: React.FC<VisualBoardProps> = ({
                   {p.rotated && p.w >= 15 && p.l >= 15 && (
                     <g
                       transform={`translate(${p.x + p.w - 11}, ${p.y + p.l - 11})`}
-                      className="opacity-90"
+                      className="opacity-90 pointer-events-none"
                     >
                       <rect width="8" height="8" rx="2" fill="none" />
                       <path
@@ -257,6 +276,53 @@ export const VisualBoard: React.FC<VisualBoardProps> = ({
               );
             })}
           </svg>
+
+          {/* Floating Tooltip */}
+          {activeHoveredPiece && hoveredInstanceId && (
+            <div
+              className="absolute z-50 pointer-events-none bg-slate-900/95 backdrop-blur-md border border-slate-700/80 p-3 rounded-xl shadow-2xl flex flex-col gap-1.5 text-slate-200 transition-all duration-75 ease-out select-none min-w-[160px] border border-orange-500/20"
+              style={{
+                left: `${tooltipPos.x}px`,
+                top: `${tooltipPos.y}px`,
+                transform: `translate(${tooltipPos.isRight ? "-110%" : "15px"}, ${tooltipPos.isBottom ? "-110%" : "15px"})`,
+              }}
+            >
+              <div className="flex items-center gap-2 border-b border-slate-800/80 pb-1.5">
+                <span
+                  className="w-2.5 h-2.5 rounded-full border border-white/20 shadow-sm shrink-0"
+                  style={{ backgroundColor: activeHoveredPiece.cor }}
+                />
+                <span className="text-xs font-bold text-white leading-tight truncate">
+                  {activeHoveredPiece.nome}
+                </span>
+              </div>
+              <div className="flex flex-col gap-1 font-mono text-[10px]">
+                <div className="flex justify-between gap-4">
+                  <span className="text-slate-400 font-sans">Dimensões:</span>
+                  <span className="text-slate-100 font-bold">
+                    {activeHoveredPiece.originalW} x {activeHoveredPiece.originalL} cm
+                  </span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-slate-400 font-sans">Posição X:</span>
+                  <span className="text-orange-400 font-bold">
+                    {activeHoveredPiece.x.toFixed(1)} cm
+                  </span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-slate-400 font-sans">Posição Y:</span>
+                  <span className="text-orange-400 font-bold">
+                    {activeHoveredPiece.y.toFixed(1)} cm
+                  </span>
+                </div>
+              </div>
+              {activeHoveredPiece.rotated && (
+                <div className="text-[9px] text-orange-400 font-bold flex items-center gap-1 mt-1 border-t border-slate-800/60 pt-1">
+                  <RotateCw className="w-3 h-3 animate-spin" style={{ animationDuration: '3s' }} /> Rotacionado 90°
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Informação sobre os eixos (X/Y) */}
