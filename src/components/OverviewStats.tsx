@@ -17,7 +17,7 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({ result }) => {
   const formattedCost = formatCurrency(result.totalCost);
 
   // Calcula área em m² para facilitar a escala humana
-  const areaChapasM2 = (result.totalAreaChapa * result.totalSheets) / 10000;
+  const areaChapasM2 = result.totalAreaChapa / 10000;
   const areaPecasM2 = result.totalAreaPecas / 10000;
   const areaSobradaM2 = areaChapasM2 - areaPecasM2;
 

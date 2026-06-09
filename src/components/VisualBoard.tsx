@@ -1,17 +1,15 @@
 import React, { useState } from "react";
-import { Chapa, SheetLayout, PackedPeca } from "../types";
-import { RotateCw, CheckCircle, HelpCircle, Layers, Maximize2 } from "lucide-react";
+import { SheetLayout, PackedPeca } from "../types";
+import { RotateCw, Layers } from "lucide-react";
 
 interface VisualBoardProps {
   layouts: SheetLayout[];
-  chapa: Chapa;
   hoveredPieceId: string | null;
   setHoveredPieceId: (id: string | null) => void;
 }
 
 export const VisualBoard: React.FC<VisualBoardProps> = ({
   layouts,
-  chapa,
   hoveredPieceId,
   setHoveredPieceId,
 }) => {
@@ -23,6 +21,7 @@ export const VisualBoard: React.FC<VisualBoardProps> = ({
   // Garantir que a chapa selecionada existe
   const activeLayoutIndex = layouts.findIndex((l) => l.id === selectedSheetId);
   const activeLayout = activeLayoutIndex !== -1 ? layouts[activeLayoutIndex] : layouts[0];
+  const chapa = activeLayout.chapa;
 
   // Coordenadas da peça selecionada para o detalhe interativo
   const activeHoveredPiece = activeLayout.packedPieces.find(
@@ -45,18 +44,18 @@ export const VisualBoard: React.FC<VisualBoardProps> = ({
 
         {/* Seleção de Chapas caso use mais de uma */}
         {layouts.length > 1 && (
-          <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-850 self-start sm:self-auto scrollbar-none overflow-x-auto">
+          <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-850 self-start sm:self-auto scrollbar-none overflow-x-auto max-w-[280px] sm:max-w-md">
             {layouts.map((l) => (
               <button
                 key={l.id}
                 onClick={() => setSelectedSheetId(l.id)}
-                className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                   selectedSheetId === l.id
                     ? "bg-orange-600 text-white shadow-md shadow-orange-950/20"
                     : "text-slate-400 hover:text-white hover:bg-slate-850"
                 }`}
               >
-                Chapa {l.id} ({l.aproveitamentoPct}%)
+                Plano #{l.id} ({l.chapa.nome} &bull; {l.aproveitamentoPct}%)
               </button>
             ))}
           </div>
@@ -67,10 +66,10 @@ export const VisualBoard: React.FC<VisualBoardProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 mb-5 bg-slate-950/50 rounded-xl border border-slate-850/80">
         <div>
           <span className="block text-[8px] font-bold text-slate-500 uppercase tracking-wider">
-            Chapa Ativa
+            Material/Chapa
           </span>
-          <span className="text-xs font-bold text-white font-mono">
-            Plano #{activeLayout.id} de {layouts.length}
+          <span className="text-[11px] font-bold text-white truncate block max-w-full">
+            {chapa.nome}
           </span>
         </div>
         <div>
@@ -262,8 +261,8 @@ export const VisualBoard: React.FC<VisualBoardProps> = ({
 
         {/* Informação sobre os eixos (X/Y) */}
         <div className="w-full flex items-center justify-between text-[10px] text-slate-500 mt-2 font-bold font-mono px-1 uppercase tracking-wider">
-          <span>Sentido Horizontal X: {chapa.largura} cm (Mestra)</span>
-          <span>Sentido Vertical Y: {chapa.comprimento} cm (Mestra)</span>
+          <span>Sentido Horizontal X: {chapa.largura} cm &bull; {chapa.nome}</span>
+          <span>Sentido Vertical Y: {chapa.comprimento} cm &bull; {chapa.nome}</span>
         </div>
       </div>
 

@@ -1,4 +1,6 @@
 export interface Chapa {
+  id: string;
+  nome: string;
   largura: number; // in cm
   comprimento: number; // in cm
   espessura: number; // in cm
@@ -12,6 +14,7 @@ export interface Peca {
   comprimento: number; // in cm
   quantidade: number;
   cor: string; // Tailwind color or hex
+  chapaId: string; // ID of the plate this piece is associated with
 }
 
 export interface PackedPeca {
@@ -36,6 +39,7 @@ export interface FreeRect {
 
 export interface SheetLayout {
   id: number;
+  chapa: Chapa; // Reference to the plate type of this sheet layout
   packedPieces: PackedPeca[];
   freeSpaces: FreeRect[];
   aproveitamentoPct: number; // percentage of sheet area used by pieces

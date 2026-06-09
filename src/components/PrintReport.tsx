@@ -1,9 +1,9 @@
 import React from "react";
-import { Chapa, SheetLayout, Peca, PackingResult } from "../types";
-import { Printer, ArrowLeft, Download, Info } from "lucide-react";
+import { Chapa, Peca, SheetLayout, PackingResult } from "../types";
+import { Printer, ArrowLeft, Info } from "lucide-react";
 
 interface PrintReportProps {
-  chapa: Chapa;
+  chapas: Chapa[];
   pecas: Peca[];
   kerf: number;
   permitirRotacao: boolean;
@@ -12,7 +12,7 @@ interface PrintReportProps {
 }
 
 export const PrintReport: React.FC<PrintReportProps> = ({
-  chapa,
+  chapas,
   pecas,
   kerf,
   permitirRotacao,
@@ -65,7 +65,7 @@ export const PrintReport: React.FC<PrintReportProps> = ({
       )}
 
       {printError && (
-        <div className="max-w-4xl mx-auto mb-4 bg-red-50 border border-red-350 text-red-900 rounded-xl p-4 text-xs font-bold leading-normal print:hidden">
+        <div className="max-w-4xl mx-auto mb-4 bg-red-50 border border-red-355 text-red-900 rounded-xl p-4 text-xs font-bold leading-normal print:hidden">
           {printError}
         </div>
       )}
@@ -122,32 +122,32 @@ export const PrintReport: React.FC<PrintReportProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div className="border border-zinc-200 rounded-xl p-4">
             <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider mb-2 border-b pb-1">
-              Especificações da Chapa
+              Especificações das Chapas Cadastradas
             </h3>
-            <table className="w-full text-xs">
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="border-b text-zinc-500 font-semibold uppercase text-[10px]">
+                  <th className="py-1 text-left">Nome/Identificação</th>
+                  <th className="py-1 text-center">Tamanho (X x Y)</th>
+                  <th className="py-1 text-center">Z</th>
+                  <th className="py-1 text-right">Preço</th>
+                </tr>
+              </thead>
               <tbody>
-                <tr className="border-b border-zinc-100">
-                  <td className="py-1 text-zinc-505">Largura (X):</td>
-                  <td className="py-1 text-right font-bold text-zinc-900">{chapa.largura} cm</td>
-                </tr>
-                <tr className="border-b border-zinc-100">
-                  <td className="py-1 text-zinc-505">Comprimento (Y):</td>
-                  <td className="py-1 text-right font-bold text-zinc-900">{chapa.comprimento} cm</td>
-                </tr>
-                <tr className="border-b border-zinc-100">
-                  <td className="py-1 text-zinc-550">Espessura (Z):</td>
-                  <td className="py-1 text-right font-bold text-zinc-900">{chapa.espessura} cm</td>
-                </tr>
-                <tr className="border-b border-zinc-100">
-                  <td className="py-1 text-zinc-505">Preço Unitário:</td>
-                  <td className="py-1 text-right font-bold text-zinc-900">{formatCurrency(chapa.valor)}</td>
-                </tr>
-                <tr>
-                  <td className="py-1 text-zinc-505">Folga de Serra (Kerf):</td>
-                  <td className="py-1 text-right font-bold text-zinc-900">{kerf} cm</td>
-                </tr>
+                {chapas.map((c, index) => (
+                  <tr key={index} className="border-b border-zinc-100 last:border-0">
+                    <td className="py-1.5 font-semibold text-zinc-900">{c.nome}</td>
+                    <td className="py-1.5 text-center font-mono">{c.largura}x{c.comprimento} cm</td>
+                    <td className="py-1.5 text-center font-mono">{c.espessura} cm</td>
+                    <td className="py-1.5 text-right font-bold font-mono">{formatCurrency(c.valor)}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
+            <div className="mt-3 pt-2 border-t border-zinc-200 text-xs flex justify-between">
+              <span className="text-zinc-500">Folga de Serra (Kerf):</span>
+              <strong className="text-zinc-900">{kerf} cm</strong>
+            </div>
           </div>
 
           <div className="border border-zinc-200 rounded-xl p-4 bg-zinc-50/50">
@@ -179,7 +179,7 @@ export const PrintReport: React.FC<PrintReportProps> = ({
                 <tr>
                   <td className="py-1 text-zinc-505">Sobras Totais do Projeto:</td>
                   <td className="py-1 text-right font-bold text-zinc-650">
-                    {(((result.totalAreaChapa * result.totalSheets) - result.totalAreaPecas) / 10000).toFixed(2)} m²
+                    {((result.totalAreaChapa - result.totalAreaPecas) / 10000).toFixed(2)} m²
                   </td>
                 </tr>
               </tbody>
@@ -197,16 +197,17 @@ export const PrintReport: React.FC<PrintReportProps> = ({
               <thead>
                 <tr className="bg-zinc-100 border-b border-zinc-200">
                   <th className="p-3 font-bold text-zinc-700 uppercase">Item/Identificação</th>
+                  <th className="p-3 font-bold text-zinc-700 uppercase">Chapa Vinculada</th>
                   <th className="p-3 font-bold text-zinc-700 uppercase text-center">Largura (X)</th>
                   <th className="p-3 font-bold text-zinc-700 uppercase text-center">Comprimento (Y)</th>
                   <th className="p-3 font-bold text-zinc-700 uppercase text-center">Quantidade</th>
-                  <th className="p-3 font-bold text-zinc-700 uppercase text-center">Espessura</th>
                   <th className="p-3 font-bold text-zinc-700 uppercase text-right">Área Individual</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200">
                 {pecas.map((pec, index) => {
                   const areaPec = (pec.largura * pec.comprimento) / 10000;
+                  const matchedChapa = chapas.find((c) => c.id === pec.chapaId);
                   return (
                     <tr key={index} className="hover:bg-zinc-50/50">
                       <td className="p-3 font-bold text-zinc-950 flex items-center gap-2">
@@ -216,10 +217,12 @@ export const PrintReport: React.FC<PrintReportProps> = ({
                         />
                         {pec.nome}
                       </td>
+                      <td className="p-3 text-zinc-650 font-semibold font-sans">
+                        {matchedChapa ? `${matchedChapa.nome} (${matchedChapa.espessura} cm)` : "N/A"}
+                      </td>
                       <td className="p-3 text-center font-mono">{pec.largura} cm</td>
                       <td className="p-3 text-center font-mono">{pec.comprimento} cm</td>
-                      <td className="p-3 text-center font-bold text-orange-660">{pec.quantidade}x</td>
-                      <td className="p-3 text-center text-zinc-500 font-mono">{chapa.espessura} cm</td>
+                      <td className="p-3 text-center font-bold text-orange-600">{pec.quantidade}x</td>
                       <td className="p-3 text-right font-mono text-zinc-600">{areaPec.toFixed(3)} m²</td>
                     </tr>
                   );
@@ -245,9 +248,9 @@ export const PrintReport: React.FC<PrintReportProps> = ({
               <div key={lay.id} className="border border-zinc-300 rounded-2xl p-4 bg-zinc-50/30 page-break-inside-avoid print-sheet-layout">
                 <div className="flex justify-between items-center mb-3">
                   <h4 className="text-xs font-bold text-zinc-900">
-                    Plano de Corte - CHAPA #{lay.id}
+                    Plano de Corte - CHAPA #{lay.id} ({lay.chapa.nome})
                   </h4>
-                  <div className="flex gap-4 text-[10px] font-mono text-zinc-500">
+                  <div className="flex gap-4 text-[10px] font-mono text-zinc-505">
                     <span>Área Útil: {(lay.areaUtilizada / 10000).toFixed(2)} m²</span>
                     <span>Eficiência: <strong>{lay.aproveitamentoPct}%</strong></span>
                   </div>
@@ -256,14 +259,14 @@ export const PrintReport: React.FC<PrintReportProps> = ({
                 {/* SVG Render strictly for paper printing (White wood color with bold black lines) */}
                 <div className="bg-white p-3 rounded-xl border border-zinc-200">
                   <svg
-                    viewBox={`0 0 ${chapa.largura} ${chapa.comprimento}`}
+                    viewBox={`0 0 ${lay.chapa.largura} ${lay.chapa.comprimento}`}
                     className="w-full h-auto"
                     style={{ maxHeight: "380px" }}
                   >
                     {/* The raw plate body style (Print friendly color) */}
                     <rect
-                      width={chapa.largura}
-                      height={chapa.comprimento}
+                      width={lay.chapa.largura}
+                      height={lay.chapa.comprimento}
                       fill="#fafafa"
                       stroke="#000000"
                       strokeWidth="2"

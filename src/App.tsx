@@ -7,13 +7,12 @@ import { VisualBoard } from "./components/VisualBoard";
 import { PrintReport } from "./components/PrintReport";
 import { otimizarCorte } from "./utils/packer";
 import { PRESET_DATA } from "./utils/presets";
-import { Hammer, Info, RotateCcw, HelpCircle, FileText, AlertCircle, Layers, Printer } from "lucide-react";
-import { motion } from "motion/react";
+import { Hammer, Info, AlertCircle, Layers, Printer } from "lucide-react";
 
 export default function App() {
   // 1. Estados principais com inicialização por Preset padrão caso local vazio
-  const [chapa, setChapa] = useState<Chapa>(() => {
-    const saved = localStorage.getItem("otm_chapa");
+  const [chapas, setChapas] = useState<Chapa[]>(() => {
+    const saved = localStorage.getItem("otm_chapas");
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -21,7 +20,7 @@ export default function App() {
         // Ignorar erro
       }
     }
-    return PRESET_DATA.banheiro.chapa;
+    return PRESET_DATA.banheiro.chapas;
   });
 
   const [pecas, setPecas] = useState<Peca[]>(() => {
@@ -51,8 +50,8 @@ export default function App() {
 
   // Guardar estados no LocalStorage para persistência
   useEffect(() => {
-    localStorage.setItem("otm_chapa", JSON.stringify(chapa));
-  }, [chapa]);
+    localStorage.setItem("otm_chapas", JSON.stringify(chapas));
+  }, [chapas]);
 
   useEffect(() => {
     localStorage.setItem("otm_pecas", JSON.stringify(pecas));
@@ -68,13 +67,24 @@ export default function App() {
 
   // 2. Cálculo de otimização em tempo real via useMemo
   const result = useMemo(() => {
-    return otimizarCorte(chapa, pecas, kerf, permitirRotacao);
-  }, [chapa, pecas, kerf, permitirRotacao]);
+    return otimizarCorte(chapas, pecas, kerf, permitirRotacao);
+  }, [chapas, pecas, kerf, permitirRotacao]);
 
-  // 3. Ações
+  // 3. Ações de Chapas
+  const handleAddChapa = (novaChapa: Chapa) => {
+    setChapas((prev) => [...prev, novaChapa]);
+  };
+
+  const handleRemoveChapa = (id: string) => {
+    setChapas((prev) => prev.filter((c) => c.id !== id));
+    // Cascade delete pieces belonging to this chapa
+    setPecas((prev) => prev.filter((p) => p.chapaId !== id));
+  };
+
+  // 4. Ações de Peças
   const handleAddPeca = (novaPeca: Omit<Peca, "id">) => {
     const id = `pc_${Date.now()}`;
-    setPecas((prev) => [...prev, { ...novaPeca, id }]);
+    setPecas((prev) => [...prev, { ...novaPeca, id } as Peca]);
   };
 
   const handleRemovePeca = (id: string) => {
@@ -89,32 +99,27 @@ export default function App() {
     const comIds = novasPecas.map((p, index) => ({
       ...p,
       id: `pc_${Date.now()}_${index}_${Math.random().toString(36).substring(2, 7)}`
-    }));
+    })) as Peca[];
     setPecas((prev) => [...prev, ...comIds]);
   };
 
   const handleLoadPreset = (presetKey: string) => {
     const pData = PRESET_DATA[presetKey];
     if (pData) {
-      setChapa(pData.chapa);
+      setChapas(pData.chapas);
       setPecas(pData.pecas);
     }
   };
 
   const handleResetAll = () => {
-    setChapa({
-      largura: 0,
-      comprimento: 0,
-      espessura: 0,
-      valor: 0,
-    });
+    setChapas([]);
     setPecas([]);
   };
 
   if (isPrintView) {
     return (
       <PrintReport
-        chapa={chapa}
+        chapas={chapas}
         pecas={pecas}
         kerf={kerf}
         permitirRotacao={permitirRotacao}
@@ -183,8 +188,9 @@ export default function App() {
             
             {/* Chapa Master Card */}
             <ChapaInputs
-              chapa={chapa}
-              setChapa={setChapa}
+              chapas={chapas}
+              onAddChapa={handleAddChapa}
+              onRemoveChapa={handleRemoveChapa}
               kerf={kerf}
               setKerf={setKerf}
               permitirRotacao={permitirRotacao}
@@ -194,6 +200,7 @@ export default function App() {
             {/* Lista de Peças e Demanda */}
             <PecaList
               pecas={pecas}
+              chapas={chapas}
               onAddPeca={handleAddPeca}
               onRemovePeca={handleRemovePeca}
               onClearPecas={handleClearPecas}
@@ -201,8 +208,6 @@ export default function App() {
               onLoadPreset={handleLoadPreset}
               hoveredPieceId={hoveredPieceId}
               setHoveredPieceId={setHoveredPieceId}
-              chapaMaxW={chapa.largura}
-              chapaMaxL={chapa.comprimento}
             />
 
           </div>
@@ -221,7 +226,7 @@ export default function App() {
                   <p className="text-[11px] text-red-400 leading-normal mt-0.5">
                     As seguintes peças não puderam ser incluídas no layout:
                   </p>
-                  <ul className="list-disc pl-4 text-[10px] text-red-350 font-medium space-y-0.5 mt-2">
+                  <ul className="list-disc pl-4 text-[10px] text-red-355 font-medium space-y-0.5 mt-2">
                     {result.unpacked.map((un, index) => (
                       <li key={index}>
                         <strong>{un.nome}</strong> ({un.largura}x{un.comprimento} cm): {un.motivo}
@@ -236,7 +241,6 @@ export default function App() {
             {result.layouts.length > 0 ? (
               <VisualBoard
                 layouts={result.layouts}
-                chapa={chapa}
                 hoveredPieceId={hoveredPieceId}
                 setHoveredPieceId={setHoveredPieceId}
               />

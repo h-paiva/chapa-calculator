@@ -1,10 +1,11 @@
-import React, { useState } from "react";
-import { Peca } from "../types";
-import { ListPlus, Trash2, Plus, RefreshCw, Layers, ArrowUpDown, X, Copy, Check } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Peca, Chapa } from "../types";
+import { ListPlus, Trash2, Plus, Layers, ArrowUpDown, X, Copy, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 interface PecaListProps {
   pecas: Peca[];
+  chapas: Chapa[];
   onAddPeca: (peca: Omit<Peca, "id">) => void;
   onRemovePeca: (id: string) => void;
   onClearPecas: () => void;
@@ -12,8 +13,6 @@ interface PecaListProps {
   onLoadPreset: (presetName: string) => void;
   hoveredPieceId: string | null;
   setHoveredPieceId: (id: string | null) => void;
-  chapaMaxW: number;
-  chapaMaxL: number;
 }
 
 const PRESETS = [
@@ -39,6 +38,7 @@ const LIGHT_PASTELS = [
 
 export const PecaList: React.FC<PecaListProps> = ({
   pecas,
+  chapas,
   onAddPeca,
   onRemovePeca,
   onClearPecas,
@@ -46,8 +46,6 @@ export const PecaList: React.FC<PecaListProps> = ({
   onLoadPreset,
   hoveredPieceId,
   setHoveredPieceId,
-  chapaMaxW,
-  chapaMaxL,
 }) => {
   const [nome, setNome] = useState("");
   const [largura, setLargura] = useState<number | "">("");
@@ -56,11 +54,24 @@ export const PecaList: React.FC<PecaListProps> = ({
   const [cor, setCor] = useState(LIGHT_PASTELS[0]);
   const [errorMsg, setErrorMsg] = useState("");
 
+  const [selectedChapaId, setSelectedChapaId] = useState<string>("");
+
   // Estados para Importar / Exportar
   const [showImportExport, setShowImportExport] = useState(false);
   const [importText, setImportText] = useState("");
   const [modalErrors, setModalErrors] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+
+  // Sincronizar chapa selecionada quando as chapas mudam
+  useEffect(() => {
+    if (chapas.length > 0) {
+      if (!selectedChapaId || !chapas.some((c) => c.id === selectedChapaId)) {
+        setSelectedChapaId(chapas[0].id);
+      }
+    } else {
+      setSelectedChapaId("");
+    }
+  }, [chapas, selectedChapaId]);
 
   const handleOpenImportExport = () => {
     // Gera o texto pré-formatado a partir da lista atual
@@ -84,6 +95,12 @@ export const PecaList: React.FC<PecaListProps> = ({
     const lines = importText.split("\n");
     const parsedPecas: Omit<Peca, "id">[] = [];
     const errors: string[] = [];
+
+    const targetChapa = chapas.find((c) => c.id === selectedChapaId) || chapas[0];
+    if (!targetChapa) {
+      setModalErrors(["Você precisa cadastrar pelo menos uma chapa antes de importar peças."]);
+      return;
+    }
 
     let colorIndex = 0;
 
@@ -131,12 +148,12 @@ export const PecaList: React.FC<PecaListProps> = ({
         return;
       }
 
-      // Verificar se a peça cabe na chapa (em qualquer sentido)
-      const cabeNormal = largPeca <= chapaMaxW && compPeca <= chapaMaxL;
-      const cabeRotacionada = compPeca <= chapaMaxW && largPeca <= chapaMaxL;
+      // Verificar se a peça cabe na chapa selecionada (em qualquer sentido)
+      const cabeNormal = largPeca <= targetChapa.largura && compPeca <= targetChapa.comprimento;
+      const cabeRotacionada = compPeca <= targetChapa.largura && largPeca <= targetChapa.comprimento;
       if (!cabeNormal && !cabeRotacionada) {
         errors.push(
-          `Linha ${index + 1}: A peça "${nomePeca}" (${largPeca}x${compPeca} cm) é maior que a chapa (${chapaMaxW}x${chapaMaxL} cm).`
+          `Linha ${index + 1}: A peça "${nomePeca}" (${largPeca}x${compPeca} cm) é maior que a chapa selecionada "${targetChapa.nome}" (${targetChapa.largura}x${targetChapa.comprimento} cm).`
         );
         return;
       }
@@ -150,6 +167,7 @@ export const PecaList: React.FC<PecaListProps> = ({
         comprimento: compPeca,
         quantidade: qtdPeca,
         cor: pecaColor,
+        chapaId: targetChapa.id,
       });
     });
 
@@ -158,8 +176,8 @@ export const PecaList: React.FC<PecaListProps> = ({
       return;
     }
 
-    // Limpa a lista atual e substitui pelas novas peças
-    onClearPecas();
+    // Limpa a lista atual de peças associadas à chapa selecionada e insere as novas
+    // Para simplificar, adicionamos as novas à lista existente
     onImportPecas(parsedPecas);
     setShowImportExport(false);
   };
@@ -167,6 +185,17 @@ export const PecaList: React.FC<PecaListProps> = ({
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
+
+    if (chapas.length === 0) {
+      setErrorMsg("Você precisa cadastrar uma chapa antes de adicionar peças.");
+      return;
+    }
+
+    const targetChapa = chapas.find((c) => c.id === selectedChapaId);
+    if (!targetChapa) {
+      setErrorMsg("Selecione uma chapa de destino válida.");
+      return;
+    }
 
     if (!nome.trim()) {
       setErrorMsg("O nome da peça é obrigatório.");
@@ -185,13 +214,13 @@ export const PecaList: React.FC<PecaListProps> = ({
       return;
     }
 
-    // Verificar se excede dimensões da chapa em qualquer rotação
-    const cabeNormal = largura <= chapaMaxW && comprimento <= chapaMaxL;
-    const cabeRotacionada = comprimento <= chapaMaxW && largura <= chapaMaxL;
+    // Verificar se excede dimensões da chapa selecionada em qualquer rotação
+    const cabeNormal = largura <= targetChapa.largura && comprimento <= targetChapa.comprimento;
+    const cabeRotacionada = comprimento <= targetChapa.largura && largura <= targetChapa.comprimento;
 
     if (!cabeNormal && !cabeRotacionada) {
       setErrorMsg(
-        `Esta peça (${largura}x${comprimento} cm) é maior que a chapa configurada (${chapaMaxW}x${chapaMaxL} cm).`
+        `Esta peça (${largura}x${comprimento} cm) é maior que a chapa selecionada "${targetChapa.nome}" (${targetChapa.largura}x${targetChapa.comprimento} cm).`
       );
       return;
     }
@@ -203,6 +232,7 @@ export const PecaList: React.FC<PecaListProps> = ({
       comprimento,
       quantidade,
       cor,
+      chapaId: selectedChapaId,
     });
 
     // Resetar campos
@@ -232,7 +262,7 @@ export const PecaList: React.FC<PecaListProps> = ({
                 Peças Solicitadas
               </h2>
               <p className="text-[11px] text-slate-400">
-                Adicione as peças que deseja cortar da chapa mestra
+                Adicione as peças que deseja cortar nas chapas
               </p>
             </div>
           </div>
@@ -240,7 +270,8 @@ export const PecaList: React.FC<PecaListProps> = ({
             <button
               type="button"
               onClick={handleOpenImportExport}
-              className="text-[11px] text-orange-400 hover:text-orange-300 font-bold transition-all border border-orange-950/80 px-2.5 py-1 rounded-lg hover:bg-orange-950/30 cursor-pointer flex items-center gap-1"
+              disabled={chapas.length === 0}
+              className="text-[11px] text-orange-400 hover:text-orange-300 font-bold transition-all border border-orange-950/80 px-2.5 py-1 rounded-lg hover:bg-orange-950/30 cursor-pointer flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ArrowUpDown className="w-3.5 h-3.5" /> Importar/Exportar
             </button>
@@ -274,6 +305,18 @@ export const PecaList: React.FC<PecaListProps> = ({
         </div>
       </div>
 
+      {/* Travas de Chapas */}
+      {chapas.length === 0 && (
+        <div className="bg-red-950/40 border border-red-900/40 rounded-xl p-4 text-center mb-5">
+          <p className="text-xs text-red-300 font-semibold leading-relaxed">
+            Nenhuma chapa cadastrada!
+          </p>
+          <p className="text-[10px] text-red-400/80 mt-1">
+            Cadastre pelo menos uma chapa no painel acima antes de prosseguir para associar seus cortes.
+          </p>
+        </div>
+      )}
+
       {/* Formulário de Adicionar Nova Peça */}
       <form onSubmit={handleAdd} className="mb-6 bg-slate-950/50 rounded-xl p-4 border border-slate-800/80">
         <h3 className="text-xs font-bold text-slate-300 mb-3 flex items-center gap-1">
@@ -281,13 +324,35 @@ export const PecaList: React.FC<PecaListProps> = ({
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+          {/* Dropdown de Chapas (só exibe se houver mais de uma, se for uma só fica selecionada como default) */}
+          {chapas.length > 0 && (
+            <div className="md:col-span-2">
+              <label className="block text-[9px] text-slate-400 mb-1 uppercase tracking-wider font-bold">
+                Chapa de Destino
+              </label>
+              <select
+                value={selectedChapaId}
+                onChange={(e) => setSelectedChapaId(e.target.value)}
+                disabled={chapas.length === 0}
+                className="w-full px-3 py-1.5 text-xs bg-slate-950 border border-slate-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-white font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {chapas.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nome} ({c.largura}x{c.comprimento} cm)
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="md:col-span-2">
             <input
               type="text"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               placeholder="Identificação funcional (ex: Porta Superior)"
-              className="w-full px-3 py-1.5 text-xs bg-slate-950 border border-slate-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-white font-semibold"
+              disabled={chapas.length === 0}
+              className="w-full px-3 py-1.5 text-xs bg-slate-950 border border-slate-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -300,7 +365,8 @@ export const PecaList: React.FC<PecaListProps> = ({
                 min="0.1"
                 step="0.1"
                 placeholder="Largura (X)"
-                className="w-full px-3 py-1.5 pr-8 text-xs bg-slate-950 border border-slate-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-white font-mono font-semibold"
+                disabled={chapas.length === 0}
+                className="w-full px-3 py-1.5 pr-8 text-xs bg-slate-950 border border-slate-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-white font-mono font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <span className="absolute right-2 top-1.5 text-[9px] text-slate-500 font-mono">cm</span>
             </div>
@@ -315,7 +381,8 @@ export const PecaList: React.FC<PecaListProps> = ({
                 min="0.1"
                 step="0.1"
                 placeholder="Comprimento (Y)"
-                className="w-full px-3 py-1.5 pr-8 text-xs bg-slate-950 border border-slate-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-white font-mono font-semibold"
+                disabled={chapas.length === 0}
+                className="w-full px-3 py-1.5 pr-8 text-xs bg-slate-950 border border-slate-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-white font-mono font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <span className="absolute right-2 top-1.5 text-[9px] text-slate-500 font-mono">cm</span>
             </div>
@@ -328,7 +395,8 @@ export const PecaList: React.FC<PecaListProps> = ({
               value={quantidade}
               onChange={(e) => setQuantidade(Math.max(1, parseInt(e.target.value) || 1))}
               min="1"
-              className="w-full px-3 py-1.5 text-xs bg-slate-950 border border-slate-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-white font-mono font-semibold"
+              disabled={chapas.length === 0}
+              className="w-full px-3 py-1.5 text-xs bg-slate-950 border border-slate-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-white font-mono font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -339,7 +407,8 @@ export const PecaList: React.FC<PecaListProps> = ({
                 type="color"
                 value={cor}
                 onChange={(e) => setCor(e.target.value)}
-                className="w-7 h-7 rounded border-0 p-0 overflow-hidden cursor-pointer"
+                disabled={chapas.length === 0}
+                className="w-7 h-7 rounded border-0 p-0 overflow-hidden cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <span className="text-[10px] text-slate-400 font-mono select-all uppercase">{cor}</span>
             </div>
@@ -354,7 +423,8 @@ export const PecaList: React.FC<PecaListProps> = ({
 
         <button
           type="submit"
-          className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-orange-950/20"
+          disabled={chapas.length === 0}
+          className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-orange-950/20 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Plus className="w-4 h-4" /> Incluir Peça na Demanda
         </button>
@@ -377,6 +447,7 @@ export const PecaList: React.FC<PecaListProps> = ({
             <AnimatePresence initial={false}>
               {pecas.map((p) => {
                 const isHovered = hoveredPieceId === p.id;
+                const matchedChapa = chapas.find((c) => c.id === p.chapaId);
                 return (
                   <motion.div
                     key={p.id}
@@ -399,11 +470,12 @@ export const PecaList: React.FC<PecaListProps> = ({
                         <p className="text-xs font-bold text-white truncate">
                           {p.nome}
                         </p>
-                        <p className="text-[10px] text-slate-400 font-semibold font-mono">
+                        <p className="text-[10px] text-slate-400 font-semibold font-mono truncate">
                           {p.largura}x{p.comprimento} cm &bull; Qtd:{" "}
                           <span className="font-bold text-orange-400">
                             {p.quantidade}x
                           </span>
+                          {matchedChapa && ` &bull; ${matchedChapa.nome}`}
                         </p>
                       </div>
                     </div>
@@ -476,7 +548,10 @@ export const PecaList: React.FC<PecaListProps> = ({
                   <p className="text-[10px] text-slate-400 leading-relaxed">
                     Insira uma peça por linha no formato: <strong>Nome, Largura, Comprimento, Quantidade</strong>. 
                     <br />
-                    Use vírgula (<code>,</code>) ou ponto-e-vírgula (<code>;</code>) como separador.
+                    As peças serão vinculadas à chapa selecionada:{" "}
+                    <strong>
+                      {chapas.find((c) => c.id === selectedChapaId)?.nome || "Selecione uma chapa"}
+                    </strong>.
                   </p>
                   <pre className="text-[9px] font-mono text-orange-450 bg-slate-950 p-2.5 rounded-lg border border-slate-900 leading-normal">
                     Porta Armário, 50, 70, 2&#10;Lateral MDF, 35.5, 120, 2&#10;Fundo Traseiro, 68, 120, 1
@@ -518,7 +593,7 @@ export const PecaList: React.FC<PecaListProps> = ({
                     <h5 className="text-[10px] font-bold text-red-400 uppercase tracking-wide">
                       Erros de Validação ({modalErrors.length})
                     </h5>
-                    <ul className="text-[9px] text-red-350 list-disc pl-4 space-y-0.5 max-h-[120px] overflow-y-auto font-medium">
+                    <ul className="text-[9px] text-red-355 list-disc pl-4 space-y-0.5 max-h-[120px] overflow-y-auto font-medium">
                       {modalErrors.map((err, idx) => (
                         <li key={idx}>{err}</li>
                       ))}
