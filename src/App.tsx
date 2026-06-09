@@ -157,7 +157,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="font-sans font-bold text-xl md:text-2xl text-white tracking-tight flex items-center gap-1.5 leading-tight">
-                Chapa Calculator<span className="text-orange-500 underline decoration-2 underline-offset-4">Pro</span>
+                Chapa Calculator<span className="text-orange-500 underline decoration-2 underline-offset-4">Pro 2.0</span>
               </h1>
               <p className="text-xs text-slate-400 font-medium">
                 Cálculo inteligente de aproveitamento de chapas de madeira
@@ -193,16 +193,16 @@ export default function App() {
 
       {/* Main Container */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
-        
+
         {/* KPI Row (Bento Style summary) */}
         <OverviewStats result={result} />
 
         {/* Layout Grid Secundário */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-          
+
           {/* Lado Esquerdo: Parâmetros e Peças (Col 5) */}
           <div className="lg:col-span-5 space-y-5">
-            
+
             {/* Chapa Master Card */}
             <ChapaInputs
               chapas={chapas}
@@ -231,7 +231,7 @@ export default function App() {
 
           {/* Lado Direito: Resultados Visuais e Alertas (Col 7) */}
           <div className="lg:col-span-7 space-y-5 lg:sticky lg:top-[90px]">
-            
+
             {/* Alerta de Peças Não Encaixadas se Houver */}
             {result.unpacked.length > 0 && (
               <div className="bg-red-950/40 border border-red-850 rounded-2xl p-4 flex gap-3 text-red-200">
