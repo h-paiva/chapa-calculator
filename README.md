@@ -2,6 +2,8 @@
 
 O **Chapa Calculator Pro 2.0** é um sistema inteligente de planejamento e otimização geométrica bidimensional (2D Bin Packing) voltado para marcenarias, carpintarias e indústrias de móveis. O software simula e gera o melhor plano de corte físico de chapas retangulares (como MDF, MDP, acrílico ou vidro) a partir de uma lista de demandas de corte inserida pelo usuário, reduzindo drasticamente o desperdício de matéria-prima.
 
+Link de acesso: https://h-paiva.github.io/chapa-calculator/
+
 ---
 
 ## 1. Necessidade de Negócio e Valor Agregado
